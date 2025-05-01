@@ -1,0 +1,18 @@
+[package]
+name = "ReliableBroadcast"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fastcrypto = "=0.1.2"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"  # 错误处理
+arc-swap = "1.0" # 线程安全共享状态
+futures = "0.3"
+hex = "0.4.3"
+base64ct = { version = "1.5.2", features = ["alloc"] }
+mysten-util-mem = { git = "https://github.com/MystenLabs/mysten-infra" }
+base64 = "0.13.1"  # 异步工具
+blake2 = "0.9"
+rand = "0.8.5"
