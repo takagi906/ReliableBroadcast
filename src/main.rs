@@ -1,19 +1,22 @@
+mod aggregator;
 mod common;
 mod crypto;
 mod node;
 mod p2p_network;
+
 use crate::common::Message;
 use crate::crypto::KeyPair;
 use crate::node::Node;
 use fastcrypto::{
     traits::{KeyPair as _, Signer as _},
-    Hash as _,
+    Hash as _, SignatureService,
 };
 use rand::{rngs::OsRng, Rng};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 #[tokio::main] // ← 关键修复
 async fn main() {
+    let f = 3;
     let keypair1 = KeyPair::generate(&mut OsRng);
     let keypair2 = KeyPair::generate(&mut OsRng);
     let keypair3 = KeyPair::generate(&mut OsRng);
@@ -45,42 +48,45 @@ async fn main() {
         0,
         keypair1.public().clone(),
         peers1.clone(),
-        0,
+        f,
         0,
         rx1,
-        tx2.clone(),
-        tx3.clone(),
+        SignatureService::new(keypair1.copy()),
     ));
     let handle2 = tokio::spawn(Node::spawn(
         1,
         keypair2.public().clone(),
         peers2.clone(),
-        0,
+        f,
         0,
         rx2,
-        tx1.clone(),
-        tx4.clone(),
+        SignatureService::new(keypair2.copy()),
     ));
     let handle3 = tokio::spawn(Node::spawn(
         2,
         keypair3.public().clone(),
         peers3.clone(),
-        0,
+        f,
         0,
         rx3,
-        tx1.clone(),
-        tx4.clone(),
+        SignatureService::new(keypair3.copy()),
     ));
     let handle4 = tokio::spawn(Node::spawn(
         3,
         keypair4.public().clone(),
         peers4.clone(),
-        0,
+        f,
         0,
         rx4,
-        tx2.clone(),
-        tx3.clone(),
+        SignatureService::new(keypair4.copy()),
     ));
-    tx1.send(Message::Data(vec![1, 2, 3])).await;
+    let s1 = String::from("Hello, World!");
+    let s2 = String::from("Hello, Rust!");
+    let s3 = String::from("Hello, Cpp!");
+    let s4 = String::from("Hello, Golang!");
+    tx1.send(Message::Data(s1.into_bytes())).await;
+    tx2.send(Message::Data(s2.into_bytes())).await;
+    tx3.send(Message::Data(s3.into_bytes())).await;
+    tx4.send(Message::Data(s4.into_bytes())).await;
     let _ = tokio::join!(handle1, handle2, handle3, handle4);
 }

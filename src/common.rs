@@ -3,7 +3,7 @@ use fastcrypto::{traits::AggregateAuthenticator, Digest, Hash, SignatureService,
 use mysten_util_mem::MallocSizeOf;
 use std::fmt;
 // 消息类型
-use crate::crypto::{PublicKey, Signature};
+use crate::crypto::{AggregateSignature, PublicKey, Signature};
 use base64ct::Encoding;
 use blake2::{digest::Update, VarBlake2b};
 use serde::{Deserialize, Serialize};
@@ -42,8 +42,9 @@ impl Propose {
 pub struct Committed {
     pub sender: PublicKey,
     pub data: Vec<u8>,
+    pub author: PublicKey,
     pub round: u64,
-    signature: <PublicKey as VerifyingKey>::Sig,
+    pub signature: <PublicKey as VerifyingKey>::Sig,
 }
 
 impl Hash for Committed {
@@ -61,6 +62,7 @@ impl Hash for Committed {
 impl Committed {
     pub async fn new(
         data: Vec<u8>,
+        author: PublicKey,
         sender: PublicKey,
         round: u64,
         signature_service: &mut SignatureService<Signature>,
@@ -68,6 +70,7 @@ impl Committed {
         let committed = Self {
             sender,
             data,
+            author,
             round,
             signature: Signature::default(),
         };
@@ -79,14 +82,46 @@ impl Committed {
             ..committed
         }
     }
+    pub fn verify(&self, public_key: PublicKey) -> bool {
+        true
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Certificate {
     pub sender: PublicKey,
     pub data: Vec<u8>,
+    pub author: PublicKey,
     pub round: u64,
-    aggregated_sig: <PublicKey as VerifyingKey>::Sig,
+    pub aggregated_signature: AggregateSignature,
+}
+
+impl Certificate {
+    pub fn new(
+        data: Vec<u8>,
+        sender: PublicKey,
+        author: PublicKey,
+        round: u64,
+        votes: Vec<(PublicKey, Signature)>,
+    ) -> Self {
+        let aggregated_signature = if votes.is_empty() {
+            AggregateSignature::default()
+        } else {
+            AggregateSignature::aggregate(votes.clone().into_iter().map(|(_, sig)| sig).collect())
+                .map_err(|e| {
+                    eprintln!("Failed to aggregate signatures: {:?}", e);
+                    e
+                })
+                .unwrap()
+        };
+        Self {
+            sender,
+            author,
+            data,
+            round,
+            aggregated_signature: aggregated_signature,
+        }
+    }
 }
 #[derive(Clone)]
 pub enum Message {

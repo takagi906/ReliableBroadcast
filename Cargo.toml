@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-fastcrypto = "=0.1.2"
+fastcrypto = { version = "=0.1.2", features = ["copy_key"] }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full"] }
 anyhow = "1.0"  # 错误处理

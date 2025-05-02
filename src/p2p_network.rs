@@ -8,7 +8,6 @@ pub struct P2pNetwork {}
 impl P2pNetwork {
     pub async fn broadcast(receivers: HashMap<PublicKey, Sender<Message>>, message: Message) {
         for (_, sender) in receivers.into_iter() {
-            println!("broadcast a log");
             let msg = message.clone();
             let _ = sender.clone().send(msg).await;
         }
